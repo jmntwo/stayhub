@@ -3,7 +3,7 @@ spring:
     name: stayhub
 
   datasource:
-    url: jdbc:h2:file:./data/stayhub
+    url: jdbc:h2:mem:stayhub
     driver-class-name: org.h2.Driver
     username: sa
     password:
