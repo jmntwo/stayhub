@@ -70,3 +70,41 @@
 ### 막힌 점
 
 - 없음
+
+---
+
+## Day 3. Mock 구현, 어댑터, 매핑 동기화
+#### 2026-09-14 (월)
+
+### 수행 내용
+
+- Mock Supplier 구현
+- 공급사 설정과 WebClient, Supplier 어댑터
+- 정규화 단위 테스트 + WireMock 연동 테스트
+- 매핑 동기화
+  - 서비스(upsert, 비활성화)
+  - 상태, 재시도 판정
+  - 스케줄러(기동 시 + 틱으로)
+
+### 의사결정
+
+- 어댑터는 형식만 정규화하고 내부 식별자 결합은 검색 서비스가 담당 → ADR 0007
+- 실패 판정은 예외 하나(SupplierException) + 사유 enum. 응답의 suppliers[].reason과 같은 enum → ADR 0008
+- 매핑 동기화의 정규 주기와 백오프 재시도를 스케줄 하나로 처리. 다음 시도 시각을 SyncStatus가 들고 있으므로 틱은 "시각이 지난 공급사"만 고름
+- 동기화의 HTTP 호출은 트랜잭션 밖, DB 반영만 TransactionTemplate 안
+
+### AI 활용
+
+| 물음                                                                       | 답                         | 판단 |
+|--------------------------------------------------------------------------|---------------------------|---|
+| 오늘 코드 초안 전체                                                              | 초안 작성, 빌드, 테스트. curl 검증까지 | 이해 안 되는 부분은 되물어 바꾸거나(아래 행) 그대로 수용 |
+| 낯선 문법 사용 (Mock의 IntUnaryOperator, B의 제네릭 래퍼 + ParameterizedTypeReference) | 날짜별 값을 함수로, 응답 래퍼를 제네릭으로  | 거부. 설명 못 할 문법 배제. int 배열 + 마지막 값 반복, API별 record로 교체 |
+| fetchCatalog 이름 근거                                                       | 공급사 중립 용어                 | 수용. Mock 스위치도 catalog로 통일 |
+| 검색 서비스 식별자 결합, 예외 형태                                                     | 어댑터는 형식만, 예외 하나 + enum    | 수용 |
+| Spring이 Map 빈을 안 주입하는 이유                                                 | 컬렉션 주입 규칙 설명              | 홀더 클래스로 우회 수용. 커밋 본문에 기록 |
+
+### 막힌 점
+
+- Spring Boot 4 패키지 이동 3건: DataJpaTest(`boot.data.jpa.test.autoconfigure`), ReactorClientHttpConnector(`http.client.reactive`), @Configuration 클래스명과 @Bean 메서드명이 같으면 빈 이름 충돌
+- JPA 벌크 UPDATE 후 1차 캐시가 옛 값을 반환. `@Modifying(flushAutomatically, clearAutomatically)`로 해결
+- 직접 등록한 `Map<Supplier, WebClient>` 빈이 어댑터에 주입되지 않아 홀더 클래스로 우회
