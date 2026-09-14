@@ -33,3 +33,9 @@ stayhub:
       api-key: mock-key-b
       connect-timeout: 1s
       response-timeout: 3s
+
+  sync:
+    interval: 6h
+    retry-initial: 30s
+    retry-max: 5m
+    retry-max-attempts: 5
