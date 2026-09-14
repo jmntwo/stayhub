@@ -3,7 +3,6 @@ package com.stayhub.supplier;
 import java.util.EnumMap;
 import java.util.Map;
 
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -19,7 +18,6 @@ import reactor.netty.http.client.HttpClient;
  * app 밖으로 나가는 HTTP 호출은 전부 여기서 만든 WebClient를 사용
  */
 @Configuration
-@EnableConfigurationProperties(SupplierProperties.class)
 public class SupplierWebClientConfig {
 
 	@Bean
