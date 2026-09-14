@@ -23,12 +23,12 @@ import reactor.netty.http.client.HttpClient;
 public class SupplierWebClientConfig {
 
 	@Bean
-	public Map<Supplier, WebClient> supplierWebClients(SupplierProperties properties, WebClient.Builder builder) {
+	public SupplierWebClients supplierWebClients(SupplierProperties properties, WebClient.Builder builder) {
 		Map<Supplier, WebClient> clients = new EnumMap<>(Supplier.class);
 		for (Supplier supplier : Supplier.values()) {
 			clients.put(supplier, build(properties.of(supplier), builder.clone()));
 		}
-		return clients;
+		return new SupplierWebClients(clients);
 	}
 
 	private static WebClient build(SupplierProperties.Endpoint endpoint, WebClient.Builder builder) {

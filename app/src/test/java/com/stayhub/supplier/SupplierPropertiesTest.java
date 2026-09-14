@@ -3,12 +3,10 @@ package com.stayhub.supplier;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
-import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import com.stayhub.domain.Supplier;
 
@@ -19,7 +17,7 @@ class SupplierPropertiesTest {
 	SupplierProperties properties;
 
 	@Autowired
-	Map<Supplier, WebClient> supplierWebClients;
+	SupplierWebClients supplierWebClients;
 
 	@Test
 	void 공급사별_설정이_바인딩된다() {
@@ -33,6 +31,7 @@ class SupplierPropertiesTest {
 
 	@Test
 	void 공급사마다_WebClient가_하나씩_만들어진다() {
-		assertThat(supplierWebClients).containsKeys(Supplier.A, Supplier.B);
+		assertThat(supplierWebClients.of(Supplier.A)).isNotNull();
+		assertThat(supplierWebClients.of(Supplier.B)).isNotNull();
 	}
 }
