@@ -185,12 +185,12 @@ HTTP 400. 공급사 호출 전에 거절
 공급사 장애, 무응답 상황을 만들어 위 검색 API의 부분 실패 응답을 확인할 때 사용
 
 ```
-POST http://localhost:9090/control/{a|b}/{list|availability}/mode?value={normal|error|no-response|delay}
+POST http://localhost:9090/control/{a|b}/{catalog|availability}/mode?value={normal|error|no-response|delay}
 ```
 
 | 구분 | 뜻 |
 |---|---|
-| list | 숙소 목록 API. 고장내면 매핑 동기화 실패 → NO_MAPPING |
+| catalog | 숙소 목록 API. 고장내면 매핑 동기화 실패 → NO_MAPPING |
 | availability | 재고·요금 API. 고장내면 검색 단계 실패 → UNAVAILABLE, TIMEOUT |
 
 | value | 동작 |

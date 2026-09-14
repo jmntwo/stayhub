@@ -27,8 +27,8 @@
 
 - 런타임: mock-supplier 모듈 (9090) 
   - 고정 응답. 날짜만 요청의 checkIn~checkOut에 맞춰 생성
-  - 고장 모드는 (공급사, API)별로 독립. POST /control/{a|b}/{list|availability}/mode로 정상, 장애, 무응답, 지연 전환
-  - list는 숙소 목록 API, availability는 재고·요금 API
+  - 고장 모드는 (공급사, API)별로 독립. POST /control/{a|b}/{catalog|availability}/mode로 정상, 장애, 무응답, 지연 전환
+  - catalog는 숙소 목록 API, availability는 재고·요금 API
 - 테스트: WireMock
   - 지연·무응답을 ms 단위로 지정
 
@@ -43,4 +43,4 @@
 
 - WireMock, 별도 모듈, 테스트용 컨트롤러 세 방식의 차이를 AI에게 물었고, "런타임은 별도 모듈, 테스트는 WireMock" 제안을 수용함. 실행자의 편의와 Mock 포트 분리 제약을 고려해 타당하다고 판단
 - AI는 고장 모드를 공급사 단위 스위치 하나로 두고 목록 API와 재고·요금 API가 같은 모드를 따르게 하자고 제안. 그러나 나는 매핑 실패와 검색 장애를 구분해 재현하기 위해 앱 기동 순서를 조작해야 하는 점이 번거롭다고 판단해 API별 스위치로 나눔
-- AI는 API 구분 이름으로 hotels, availability를 제안. A의 경로를 그대로 쓴 이름이라 B와 맞지 않아 역할 이름 list, availability로 변경
+- AI는 API 구분 이름으로 hotels, availability를 제안. A의 경로를 그대로 쓴 이름이라 B와 맞지 않아 역할 이름 list, availability로 변경. 이후 어댑터 코드의 fetchCatalog, CatalogEntry와 이름을 맞추기 위해 catalog로 재변경
