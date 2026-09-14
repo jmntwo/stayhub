@@ -6,7 +6,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,19 +20,39 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class MockSupplierController {
 
+	private static final long NO_RESPONSE_SLEEP_MS = 600_000;
+
+	private final FailureModeController failureModes;
+	private final long delayMs;
+
+	public MockSupplierController(FailureModeController failureModes,
+			@Value("${mock.delay-seconds:3}") long delaySeconds) {
+		this.failureModes = failureModes;
+		this.delayMs = delaySeconds * 1000;
+	}
+
 	// ---- Supplier A ----
 
 	@GetMapping(value = "/a/v1/hotels", produces = "application/json")
-	public Map<String, Object> hotelsA() {
+	public ResponseEntity<Object> hotelsA() {
+		ResponseEntity<Object> failure = failureResponse("a", "list");
+		if (failure != null) {
+			return failure;
+		}
+		return ResponseEntity.ok(hotelsBodyA());
+	}
+
+	private Map<String, Object> hotelsBodyA() {
 		Map<String, Map<String, Object>> hotels = new LinkedHashMap<>();
 		for (MockData.RoomA r : MockData.SUPPLIER_A) {
-			Map<String, Object> hotel = hotels.computeIfAbsent(r.hotelCode(), code -> {
-				Map<String, Object> h = new LinkedHashMap<>();
-				h.put("hotelCode", code);
-				h.put("hotelName", r.hotelName());
-				h.put("roomTypes", new ArrayList<Map<String, Object>>());
-				return h;
-			});
+			Map<String, Object> hotel = hotels.get(r.hotelCode());
+			if (hotel == null) {
+				hotel = new LinkedHashMap<>();
+				hotel.put("hotelCode", r.hotelCode());
+				hotel.put("hotelName", r.hotelName());
+				hotel.put("roomTypes", new ArrayList<Map<String, Object>>());
+				hotels.put(r.hotelCode(), hotel);
+			}
 			@SuppressWarnings("unchecked")
 			List<Map<String, Object>> roomTypes = (List<Map<String, Object>>) hotel.get("roomTypes");
 			roomTypes.add(Map.of(
@@ -41,10 +64,17 @@ public class MockSupplierController {
 	}
 
 	@GetMapping(value = "/a/v1/availability", produces = "application/json")
-	public Map<String, Object> availabilityA(
+	public ResponseEntity<Object> availabilityA(
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut) {
-		List<LocalDate> nights = nights(checkIn, checkOut);
+		ResponseEntity<Object> failure = failureResponse("a", "availability");
+		if (failure != null) {
+			return failure;
+		}
+		return ResponseEntity.ok(availabilityBodyA(nights(checkIn, checkOut)));
+	}
+
+	private Map<String, Object> availabilityBodyA(List<LocalDate> nights) {
 		List<Map<String, Object>> items = new ArrayList<>();
 		for (MockData.RoomA r : MockData.SUPPLIER_A) {
 			List<Map<String, Object>> dailyRates = new ArrayList<>();
@@ -73,16 +103,25 @@ public class MockSupplierController {
 	// ---- Supplier B ----
 
 	@GetMapping(value = "/b/api/properties", produces = "application/json")
-	public Map<String, Object> propertiesB() {
+	public ResponseEntity<Object> propertiesB() {
+		ResponseEntity<Object> failure = failureResponse("b", "list");
+		if (failure != null) {
+			return failure;
+		}
+		return ResponseEntity.ok(propertiesBodyB());
+	}
+
+	private Map<String, Object> propertiesBodyB() {
 		Map<String, Map<String, Object>> properties = new LinkedHashMap<>();
 		for (MockData.RoomB r : MockData.SUPPLIER_B) {
-			Map<String, Object> property = properties.computeIfAbsent(r.propertyId(), id -> {
-				Map<String, Object> p = new LinkedHashMap<>();
-				p.put("propertyId", id);
-				p.put("propertyName", r.propertyName());
-				p.put("rooms", new ArrayList<Map<String, Object>>());
-				return p;
-			});
+			Map<String, Object> property = properties.get(r.propertyId());
+			if (property == null) {
+				property = new LinkedHashMap<>();
+				property.put("propertyId", r.propertyId());
+				property.put("propertyName", r.propertyName());
+				property.put("rooms", new ArrayList<Map<String, Object>>());
+				properties.put(r.propertyId(), property);
+			}
 			@SuppressWarnings("unchecked")
 			List<Map<String, Object>> rooms = (List<Map<String, Object>>) property.get("rooms");
 			rooms.add(Map.of(
@@ -94,10 +133,17 @@ public class MockSupplierController {
 	}
 
 	@GetMapping(value = "/b/api/search", produces = "application/json")
-	public Map<String, Object> searchB(
+	public ResponseEntity<Object> searchB(
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut) {
-		List<LocalDate> nights = nights(checkIn, checkOut);
+		ResponseEntity<Object> failure = failureResponse("b", "availability");
+		if (failure != null) {
+			return failure;
+		}
+		return ResponseEntity.ok(searchBodyB(nights(checkIn, checkOut)));
+	}
+
+	private Map<String, Object> searchBodyB(List<LocalDate> nights) {
 		List<Map<String, Object>> items = new ArrayList<>();
 		for (MockData.RoomB r : MockData.SUPPLIER_B) {
 			List<Map<String, Object>> inventory = new ArrayList<>();
@@ -121,6 +167,51 @@ public class MockSupplierController {
 			items.add(item);
 		}
 		return successB(Map.of("items", items));
+	}
+
+	// ---- failure modes ----
+
+	/**
+	 * ERROR: A는 HTTP 503, B는 HTTP 200 + resultCode E503
+	 * NO_RESPONSE: 연결은 유지하고 응답하지 않음 (600초 대기 후 빈 응답)
+	 * DELAY: 설정 시간 대기 후 null (정상 응답으로 이어짐)
+	 */
+	private ResponseEntity<Object> failureResponse(String supplier, String api) {
+		FailureMode mode = failureModes.modeOf(supplier, api);
+		if (mode == FailureMode.ERROR) {
+			if ("a".equals(supplier)) {
+				return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorBodyA());
+			}
+			return ResponseEntity.ok(errorBodyB());
+		}
+		if (mode == FailureMode.NO_RESPONSE) {
+			sleep(NO_RESPONSE_SLEEP_MS);
+			return ResponseEntity.ok(Map.of());
+		}
+		if (mode == FailureMode.DELAY) {
+			sleep(delayMs);
+		}
+		return null;
+	}
+
+	private static Map<String, Object> errorBodyA() {
+		return Map.of("error", "SERVICE_UNAVAILABLE", "message", "temporarily unavailable");
+	}
+
+	private static Map<String, Object> errorBodyB() {
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("resultCode", "E503");
+		body.put("resultMessage", "TEMPORARILY_UNAVAILABLE");
+		body.put("data", null);
+		return body;
+	}
+
+	private static void sleep(long ms) {
+		try {
+			Thread.sleep(ms);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
 	}
 
 	// ---- helpers ----
