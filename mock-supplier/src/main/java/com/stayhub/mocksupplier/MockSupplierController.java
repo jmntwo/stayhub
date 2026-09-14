@@ -35,7 +35,7 @@ public class MockSupplierController {
 
 	@GetMapping(value = "/a/v1/hotels", produces = "application/json")
 	public ResponseEntity<Object> hotelsA() {
-		ResponseEntity<Object> failure = failureResponse("a", "list");
+		ResponseEntity<Object> failure = failureResponse("a", "catalog");
 		if (failure != null) {
 			return failure;
 		}
@@ -104,7 +104,7 @@ public class MockSupplierController {
 
 	@GetMapping(value = "/b/api/properties", produces = "application/json")
 	public ResponseEntity<Object> propertiesB() {
-		ResponseEntity<Object> failure = failureResponse("b", "list");
+		ResponseEntity<Object> failure = failureResponse("b", "catalog");
 		if (failure != null) {
 			return failure;
 		}

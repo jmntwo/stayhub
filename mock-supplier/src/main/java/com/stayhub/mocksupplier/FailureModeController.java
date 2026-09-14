@@ -12,13 +12,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * (공급사, API)별로 독립
- * POST /control/{a|b}/{list|availability}/mode?value={normal|error|no-response|delay}
+ * POST /control/{a|b}/{catalog|availability}/mode?value={normal|error|no-response|delay}
  */
 @RestController
 public class FailureModeController {
 
 	static final Set<String> SUPPLIERS = Set.of("a", "b");
-	static final Set<String> APIS = Set.of("list", "availability");
+	static final Set<String> APIS = Set.of("catalog", "availability");
 
 	private final Map<String, FailureMode> modes = new ConcurrentHashMap<>();
 
