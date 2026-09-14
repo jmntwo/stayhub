@@ -20,3 +20,16 @@ spring:
 
 server:
   port: 8080
+
+stayhub:
+  suppliers:
+    a:
+      base-url: http://localhost:9090
+      api-key: mock-key-a
+      connect-timeout: 1s
+      response-timeout: 3s
+    b:
+      base-url: http://localhost:9090
+      api-key: mock-key-b
+      connect-timeout: 1s
+      response-timeout: 3s
