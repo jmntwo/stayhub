@@ -32,6 +32,9 @@ stayhub/
 # 예정
 ```
 
+공급사 API 키는 `app/src/main/resources/application.yaml`의 `stayhub.suppliers.{a,b}.api-key`.
+Mock 연동용 고정 값이며, 실제 공급사 연동 시 환경 변수 `STAYHUB_SUPPLIERS_A_API_KEY` 등으로 주입
+
 ---
 
 ### 설계 결정
