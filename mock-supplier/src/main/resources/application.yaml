@@ -4,3 +4,6 @@ spring:
 
 server:
   port: 9090
+
+mock:
+  delay-seconds: 3
