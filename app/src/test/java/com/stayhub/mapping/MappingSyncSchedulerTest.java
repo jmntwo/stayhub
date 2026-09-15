@@ -46,6 +46,8 @@ class MappingSyncSchedulerTest {
 
 	@DynamicPropertySource
 	static void supplierUrls(DynamicPropertyRegistry registry) {
+		// 같은 JVM의 다른 컨텍스트와 인메모리 DB를 공유하지 않도록 컨텍스트마다 다른 DB 이름
+		registry.add("spring.datasource.url", () -> "jdbc:h2:mem:" + java.util.UUID.randomUUID());
 		registry.add("stayhub.suppliers.a.base-url", server::baseUrl);
 		registry.add("stayhub.suppliers.b.base-url", server::baseUrl);
 	}
