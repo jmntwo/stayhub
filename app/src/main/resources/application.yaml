@@ -39,3 +39,8 @@ stayhub:
     retry-initial: 30s
     retry-max: 5m
     retry-max-attempts: 5
+
+  search:
+    deadline: 5s
+    chunk-size: 50
+    concurrency-per-supplier: 4
