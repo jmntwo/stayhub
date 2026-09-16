@@ -46,21 +46,20 @@ flowchart LR
 
 ```
 com.stayhub
-├── api          검색 컨트롤러, 요청/응답 DTO
-├── application  검색 서비스
-├── domain       표준 숙박 상품 모델 (공급사를 모르는 상태)
-├── supplier     공급사 연동
-│   ├── SupplierAdapter (인터페이스)
-│   ├── a        A 어댑터, A 응답 DTO, A → 표준 모델 변환
-│   └── b        B 어댑터, B 응답 DTO, B → 표준 모델 변환
-└── mapping      매핑 엔티티, 리포지토리, 동기화 스케줄러
+├── api          HTTP 입구. StaySearchController
+├── application  검색 흐름. StaySearchService
+├── domain       표준 모델.
+├── supplier     공급사 연동. SupplierAdapter 인터페이스, 공급사별 하위 패키지 a·b
+└── mapping      공급사 코드 <-> 내부 식별자. MappingSyncService
 ```
 
 경계 규칙
 
-- 공급사 응답 DTO는 어댑터가 표준 모델로 바꿔서 내보냄
-- `application`은 `SupplierAdapter` 인터페이스만 보기 때문에 A인지 B인지 분기하지 않음
-- 공급사별 실패(A의 HTTP 상태 코드, B의 resultCode)는 어댑터 안에서 공통 예외로 바뀜
+- 공급사 응답 DTO는 `supplier.a`, `supplier.b` 밖으로 나가지 않음. package-private
+- 어댑터는 형식만 표준으로 바꿈. 요금 총액, 가용 객실 수, 조식은 계산하되 식별자는 공급사 코드 그대로인 SupplierOffer를 반환. 내부 식별자, 이름, 최대 인원 결합은 StaySearchService가 매핑 테이블로 수행 (ADR 0007)
+- `application`은 `SupplierAdapter` 인터페이스와 `List<SupplierAdapter>`만 봄. A인지 B인지 분기하지 않음
+- 공급사별 실패(A의 HTTP 상태 코드, B의 resultCode, 타임아웃)는 어댑터 안에서 SupplierException 하나로 바뀜 (ADR 0008)
+- Mono·Flux는 `supplier`와 `application`의 StaySearchService 안에만 있음. `block()`은 StaySearchService.search()에서 한 번 (ADR 0003)
 
 ## 3. 검색 흐름
 
@@ -137,10 +136,13 @@ flowchart TB
 ## 6. 신규 Supplier 추가 절차
 
 1. `supplier.c` 패키지 생성
-2. 응답 DTO, `SupplierAdapter` 구현체, C → 표준 모델 변환
-3. C의 실패 표현을 공통 예외로 바꾸는 규칙을 어댑터 안에 작성
-4. 설정에 C의 base URL, API 키, 타임아웃 추가
-5. `mock-supplier`에 C 엔드포인트와 응답 데이터 추가
+2. C 응답 DTO(package-private record), `SupplierAdapter` 구현체, C → CatalogEntry, SupplierOffer 변환 클래스
+3. C가 실패를 알리는 방식(HTTP 상태, 본문 코드 등)을 SupplierException + FailureReason으로 바꾸는 규칙을 어댑터 안에 작성
+4. application.yaml의 `stayhub.suppliers`에 C의 base-url, api-key, 타임아웃 추가
+5. `Supplier` enum에 C 추가
+6. `mock-supplier`에 C 엔드포인트와 응답 데이터, 고장 스위치 추가
+
+`api`, `application`, `mapping`은 수정 없음. 어댑터가 `@Component`로 등록되면 `List<SupplierAdapter>` 주입으로 매핑 동기화 스케줄러와 검색 서비스에 자동 포함됨
 
 ## 관련 ADR
 
@@ -148,3 +150,8 @@ flowchart TB
 - [0002 Mock Supplier 구성 방식](adr/0002-mock-supplier.md)
 - [0003 Spring MVC 위에서 WebClient만 사용](adr/0003-mvc-with-webclient.md)
 - [0004 매핑 저장소와 동기화 전략](adr/0004-mapping-store-and-sync.md)
+- [0005 표준 숙박 상품 모델](adr/0005-standard-stay-model.md)
+- [0006 부분 실패 표현](adr/0006-partial-failure-response.md)
+- [0007 어댑터의 책임 범위](adr/0007-adapter-responsibility.md)
+- [0008 실패 판정 통일](adr/0008-failure-normalization.md)
+- [0009 견고성 설정값과 재시도·서킷 설계](adr/0009-resilience-settings.md)
