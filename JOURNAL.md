@@ -108,3 +108,35 @@
 - Spring Boot 4 패키지 이동 3건: DataJpaTest(`boot.data.jpa.test.autoconfigure`), ReactorClientHttpConnector(`http.client.reactive`), @Configuration 클래스명과 @Bean 메서드명이 같으면 빈 이름 충돌
 - JPA 벌크 UPDATE 후 1차 캐시가 옛 값을 반환. `@Modifying(flushAutomatically, clearAutomatically)`로 해결
 - 직접 등록한 `Map<Supplier, WebClient>` 빈이 어댑터에 주입되지 않아 홀더 클래스로 우회
+
+---
+
+## Day 4. 통합 검색 API, 핵심 흐름 관통
+#### 2026-09-15 (화)
+
+### 수행 내용
+
+- 검색 서비스. 활성 매핑 색인 -> 공급사별 50개 청크 -> 병렬 호출(동시 4) -> 내부 식별자 결합 -> 병합
+- 통합 검색 API. 컨트롤러, 응답 DTO, 400 처리, Swagger 노출
+- 통합 테스트. WireMock으로 A·B를 세우고 정상 / B 503 / B E503 / B 무응답 / 둘 다 (실패 5케이스)
+- Mock과 함께 실행해 실제 응답 확인. B 무응답 시 3.1초에 A 결과만으로 응답
+- ADR 0009 견고성 설정값 작성 (재시도,서킷,가상 스레드는 설계만)
+
+### 의사결정
+
+- 타임아웃 연결 1초, 응답 3초, 공급사 데드라인 5초, 청크 동시 4. 데드라인은 검색 전체가 아니라 공급사 단위 → ADR 0009
+- 재시도, 서킷 브레이커는 구현하지 않고 설계로. 필수 네 가지 우선 → ADR 0009
+- 응답 items는 도메인 StayOffer를 그대로 직렬화. 필드명이 api-spec과 같아 응답 DTO 중복을 두지 않음
+
+### AI 활용
+
+| 물음 | 답 | 판단                                        |
+|---|---|-------------------------------------------|
+| 오늘 코드 초안 전체 (검색 서비스, API, 통합 테스트) | 커밋 단위로 초안 작성, 테스트와 실제 실행까지 검증 | 파일별 설명을 듣고 읽은 뒤 커밋. Reactor 부분은 줄 단위로 되물음 |
+| WireMock과 MockMvc의 차이 | 나가는 쪽 가짜 공급사 / 들어오는 쪽 가짜 손님 | 이해 후 수용                                   |
+| 재시도와 서킷 브레이커의 뜻 | 한 번 더 두드리기 / 당분간 두드리지 않기 | 이해 후 설계만 남기는 결정 유지                        |
+
+### 막힌 점
+
+- WireMock의 `get`과 MockMvc의 `get`이 같은 이름이라 static import 충돌. WireMock 쪽을 `WireMock.get`으로 한정
+- @SpringBootTest 두 개가 같은 이름의 인메모리 H2를 공유해 한쪽 동기화 결과가 다른 쪽 테스트에 섞임. 컨텍스트마다 다른 DB 이름을 주어 해결
