@@ -67,6 +67,8 @@ curl -X POST 'http://localhost:9090/control/b/availability/mode?value=normal'
 
 스위치는 `{a|b}` × `{catalog|availability}` × `{normal|error|no-response|delay}`. `catalog`를 고장내면 매핑 동기화 실패(`NO_MAPPING`)를 재현. 상세는 [docs/api-spec.md](docs/api-spec.md)
 
+macOS에서 app 기동 시 `Unable to load io.netty.resolver.dns.macos...` ERROR 로그 한 줄이 뜸. netty가 macOS 전용 DNS 라이브러리를 찾지 못해 시스템 기본으로 대신한다는 알림이며 동작과 무관
+
 공급사 API 키는 `app/src/main/resources/application.yaml`의 `stayhub.suppliers.{a,b}.api-key`.
 Mock 연동용 고정 값이며, 실제 공급사 연동 시 환경 변수 `STAYHUB_SUPPLIERS_A_API_KEY` 등으로 주입
 
