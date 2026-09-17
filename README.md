@@ -174,10 +174,3 @@ A는 날짜별 단가에 세금 별도, B는 기간 총액에 세금 포함. 둘
 | 검색 서비스 | 병합, 부분 실패, NO_MAPPING, 청크 분할, 매핑 없는 코드 무시                           | 가짜 어댑터 | `application/StaySearchServiceTest` |
 | 검색 API | 400 처리, 응답 JSON 구조                                                  | @WebMvcTest, 서비스는 가짜 | `api/StaySearchControllerTest` |
 | 전체 관통 | 앱을 통째로 띄우고 검색 요청을 보냄. B가 503, E503, 무응답일 때 각각 A 결과만으로 200 응답하고 B는 UNAVAILABLE 또는 TIMEOUT으로 표시되는지. 둘 다 실패면 빈 결과에 사유가 붙는지 | 앱 전체 + WireMock이 A, B 역할 | `SearchIntegrationTest` |
-
-원칙
-
-- 계산은 HTTP 없이, 연동은 실제 HTTP로
-- 자동 테스트의 공급사는 WireMock. mock-supplier 모듈은 사람이 띄워 눌러보는 용도 (ADR 0002)
-- 무응답 케이스는 테스트에서 응답 타임아웃을 500ms로 줄여 몇 초씩 기다리지 않음
-- 손으로 확인하려면 위 "빌드 및 실행"의 장애 재현 절차
