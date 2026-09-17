@@ -65,6 +65,26 @@ curl -X POST 'http://localhost:9090/control/b/availability/mode?value=no-respons
 curl -X POST 'http://localhost:9090/control/b/availability/mode?value=normal'
 ```
 
+**매핑 동기화 실패 재현**
+
+목록 API는 앱이 뜰 때와 6시간 주기로만 호출하므로, 스위치를 켠 뒤 app을 재시작해야 함
+
+```bash
+# A의 숙소 목록 API를 장애 상태로
+curl -X POST 'http://localhost:9090/control/a/catalog/mode?value=error'
+
+# app 재시작 (Ctrl+C 후 다시 bootRun). 로그에 A는 실패, B는 성공, 앱은 정상 기동
+#   mapping sync failed supplier=A reason=UNAVAILABLE nextAttemptAt=...
+#   mapping sync ok supplier=B properties=2 roomTypes=2
+#   Started StayhubApplication
+
+# 검색. A는 매핑이 없어 호출 없이 NO_MAPPING, B 상품만 옴
+curl 'http://localhost:8080/api/v1/stays/search?checkIn=2026-10-01&checkOut=2026-10-03&adults=2&children=0'
+
+# A 복귀. 재시도는 첫 실패 후 30~60초 뒤 시작해 간격이 두 배씩 늘어남(최대 5분)
+curl -X POST 'http://localhost:9090/control/a/catalog/mode?value=normal'
+```
+
 스위치는 `{a|b}` × `{catalog|availability}` × `{normal|error|no-response|delay}`. `catalog`를 고장내면 매핑 동기화 실패(`NO_MAPPING`)를 재현. 상세는 [docs/api-spec.md](docs/api-spec.md)
 
 macOS에서 app 기동 시 `Unable to load io.netty.resolver.dns.macos...` ERROR 로그 한 줄이 뜸. netty가 macOS 전용 DNS 라이브러리를 찾지 못해 시스템 기본으로 대신한다는 알림이며 동작과 무관
